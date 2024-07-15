@@ -6,6 +6,16 @@ const Station = require('../Models/stationModel');
 const Transaction = require('../Models/transactionModel');
 const Wallet = require('../Models/walletModel');
 
+// get all stations
+const getAllStations = async (req, res) => {
+    try {
+        const stations = await Station.find().populate('docks');
+        res.json(stations);
+    } catch (error) {
+        res.status(500).send('Server error');
+    }
+}
+
 //get availability
 const stationAvailability = async (req, res) => {
     const { stationId } = req.params;
@@ -127,4 +137,4 @@ const returnBike = async (req, res) => {
     }
 }
 
-module.exports = {stationAvailability, rentBike, returnBike}
+module.exports = {stationAvailability, rentBike, returnBike, getAllStations}

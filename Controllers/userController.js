@@ -12,9 +12,10 @@ const signupUser = async (req,res) => {
     const {name,email,password} = req.body;
     try{
         const user = await User.signup(name, email, password);
-        console.log(user.name);
+        console.log("Signup Successfuly");
         const token = createToken(user._id);
         res.status(200).json({email,token});
+        console.log(email,"\n",token);
     } catch (error){
         res.status(400).json({error: error.message});
     }
@@ -29,6 +30,8 @@ const loginUser = async(req,res)=>{
         const token = createToken(user._id)
         console.log(token)
         res.status(200).json({email, token})
+        console.log( email,"/n",token);
+
     } catch(error){
         res.status(400).json({error: error.message})
     }
