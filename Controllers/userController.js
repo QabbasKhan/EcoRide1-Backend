@@ -28,7 +28,7 @@ const loginUser = async(req,res)=>{
         const user = await User.login(email, password)
         console.log("Login successfuly")
         const token = createToken(user._id)
-        console.log(token)
+        //console.log(token)
         res.status(200).json({email, token})
         console.log( email,"/n",token);
 

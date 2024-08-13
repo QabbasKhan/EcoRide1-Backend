@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const walletSchema = new mongoose.Schema({
-    balance: { type: Number, default: 0 },
+    balance: { type: Number, default: 50 },
     transactions: [{
         amount: { type: Number, required: true },
         type: { type: String, enum: ['credit', 'debit'], required: true },

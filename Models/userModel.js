@@ -28,7 +28,16 @@ const userSchema = new Schema({
     rentedBike: { 
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Bike',
-      default: null }
+      default: null
+     },
+      totalRideTime: { 
+        type: Number, 
+        default: 0 
+    },
+      rideCount: { 
+      type: Number, 
+      default: 0 
+  }
 //  rentedBike: { type: mongoose.Schema.Types.ObjectId, ref: 'Bike', default: null }
 }, { timestamps: true });
 
