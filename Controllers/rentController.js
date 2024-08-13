@@ -18,7 +18,7 @@ const getAllStations = async (req, res) => {
             location: station.location,
             docks: station.docks
         }));
-        res.json(stationsDetails);
+        res.json(stationDetails);
     } catch (error) {
         res.status(500).send('Server error');
     }
