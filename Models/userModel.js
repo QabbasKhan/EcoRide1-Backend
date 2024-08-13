@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const bcrypt = require('bcrypt')
+const bcryptjs = require('bcryptjs')
 const validator = require('validator')
 const Wallet = require('../Models/walletModel')
 
@@ -60,8 +60,8 @@ userSchema.statics.signup = async function(name, email, password) {
       throw Error('Email already in use')
     }
   
-    const salt = await bcrypt.genSalt(10)
-    const hash = await bcrypt.hash(password, salt)
+    const salt = await bcryptjs.genSalt(10)
+    const hash = await bcryptjs.hash(password, salt)
 
     const wallet = new Wallet();
     await wallet.save();
@@ -82,7 +82,7 @@ userSchema.statics.login = async function(email, password) {
       throw Error('Incorrect email')
     }
   
-    const match = await bcrypt.compare(password, user.password)
+    const match = await bcryptjs.compare(password, user.password)
     if (!match) {
       throw Error('Incorrect password')
     }
