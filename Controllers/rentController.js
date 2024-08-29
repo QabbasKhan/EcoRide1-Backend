@@ -1,10 +1,11 @@
-const express = require('express')
+const express = require('express');
 const User = require('../Models/userModel');
 const Bike = require('../Models/bikeModel');
 const Dock = require('../Models/dockModel');
 const Station = require('../Models/stationModel');
 const Transaction = require('../Models/transactionModel');
 const Wallet = require('../Models/walletModel');
+const mqttClient  = require('../mqttsConnection');
 
 // get all stations
 const getAllStations = async (req, res) => {
@@ -34,7 +35,7 @@ const stationAvailability = async (req, res) => {
         if (!station) {
             return res.status(404).send('Station not found');
         }
-
+        console.log("user click to a station",station.name);
         // Count the number of occupied and empty docks
         const occupiedDocks = await Dock.countDocuments({ station: stationId, status: 'occupied' });
         const emptyDocks = await Dock.countDocuments({ station: stationId, status: 'empty' });
@@ -59,6 +60,7 @@ const scannedDockDetails = async (req, res) => {
     const { qrCode } = req.params;
 
     try {
+        console.log("Scanned a dock")
         const user = await User.findById(userId);
 
         // Check wallet balance
@@ -72,6 +74,7 @@ const scannedDockDetails = async (req, res) => {
 
 
         const dock = await Dock.findOne({ qrCode }).populate('bike').populate('station');
+        console.log(dock.name);
         if (!dock) {
             return res.status(404).send('Dock not found');
         }
@@ -88,8 +91,8 @@ const scannedDockDetails = async (req, res) => {
         const dockDetails = {
             dockId: dock._id,
             status: dock.status,
-            stationName: dock.station.name,
-            bikeId: dock.bike ? dock.bike._id : null,
+            stationName: dock.station.area,
+            bikeId: dock.bike ? dock.bike.name : null,
         };
 
         res.json(dockDetails);
@@ -104,12 +107,9 @@ const startRide = async (req, res) => {
     //changed
     const userId = req.user._id
     const {dockId} = req.body;
-    //orignal
-   // const { userId, qrCode } = req.body;
     try{
     const user = await User.findById(userId).populate('wallet');
     //console.log('User:', user.name);
-    // const dock = await Dock.findOne({ qrCode, status: 'occupied' }).populate('bike');
     const dock = await Dock.findById(dockId).populate('bike');
     //console.log('Dock:', dock);
 
@@ -125,6 +125,17 @@ const startRide = async (req, res) => {
     dock.bike = null;
     user.rentedBike = bike._id;
 
+         // Send MQTT unlock command
+         mqttClient.publish('qabbas/dockId/control', 'UNLOCK', (error) => {
+            if (error) {
+                console.error('Failed to send unlock command', error);
+                return res.status(500).send('Failed to send unlock command');
+            } else {
+                console.log(`Unlock command sent to dock ${dock._id}`);
+                // Respond after MQTT message is sent
+            }
+        });
+
     console.log(bike.name, "is assigned to user:", user.name);
 
     const transaction = new Transaction({
@@ -139,7 +150,8 @@ const startRide = async (req, res) => {
     await user.save();
     await transaction.save();
 
-    res.send(transaction);
+
+    return res.send(transaction);
     } catch (error){
         res.status(500).send("Server error") 
     }
@@ -150,7 +162,8 @@ const endRide = async (req, res) => {
     const userId = req.user._id
     const {dockId} = req.body;
     //const { userId, qrCode } = req.body;
-
+    console.log("end req is made");
+    
     try {
         const user = await User.findById(userId).populate('wallet');
         // const dock = await Dock.findOne({ qrCode, status: 'empty' });
@@ -160,7 +173,44 @@ const endRide = async (req, res) => {
         if (!user || !dock || !bike || dock.status !== 'empty') {
             return res.status(400).send('Invalid data or dock is not empty');
         }
+    //     await processTransaction(user, bike, dock, res);
 
+    //     const responseTopic = 'qabbas/dockId/response';
+
+    //     // Subscribe to the response topic
+    //     mqttClient.subscribe(responseTopic, (err) => {
+    //         if (err) {
+    //             console.error('Failed to subscribe to response topic', err);
+    //             return res.status(500).send('Failed to subscribe to response topic');
+    //         }
+
+    //         // Send MQTT request to ESP to get RFID tag
+    //         mqttClient.publish('qabbas/dockId/control', 'getRFID', (error) => {
+    //             if (error) {
+    //                 console.error('Failed to request RFID', error);
+    //                 return res.status(500).send('Failed to request RFID');
+    //             }
+    //         });
+
+    //     // Listen for the RFID tag response on the response topic
+    //     mqttClient.once('message', async (topic, message) => {
+    //         if (topic === responseTopic) {
+    //             const receivedRFID = message.toString();
+    //             console.log(receivedRFID);
+
+    //             // Check if the received RFID matches any bike's RFID
+    //             const matchingBike = await Bike.findOne({ rfidTag: receivedRFID });
+
+    //             if (!matchingBike) {
+    //                 return res.status(400).send('RFID tag mismatch. Ride cannot be ended.');
+    //             }
+
+    //             // Now that RFID is validated, proceed with the transaction
+    //             await processTransaction(user, bike, dock, res);
+    //         }
+    //     });
+    // });
+        
         const transaction = await Transaction.findOne({ user: user._id, bike: bike._id, endTime: null });
         transaction.endTime = new Date();
         transaction.dockStationEnd = dock._id;
@@ -194,12 +244,54 @@ const endRide = async (req, res) => {
         await user.wallet.save();
 
         res.send(transaction);
+
     } catch (error) {
         res.status(500).send('Server error');
     }
 }
 
-//Ride History
+// const processTransaction = async (user, bike, dock, res) => {
+//     try {
+//         const transaction = await Transaction.findOne({ user: user._id, bike: bike._id, endTime: null });
+//         transaction.endTime = new Date();
+//         transaction.dockStationEnd = dock._id;
+//         const duration = (transaction.endTime - transaction.startTime) / 1000 / 60; // in minutes
+//         const fare = duration * 0.5; // Example fare calculation
+//         transaction.fare = fare;
+
+//         user.wallet.balance -= fare;
+//         user.wallet.transactions.push({
+//             amount: fare,
+//             type: 'debit',
+//             date: new Date(),
+//             description: 'Bike rental fare'
+//         });
+
+//         bike.status = 'available';
+//         bike.currentDock = dock._id;
+//         bike.userId = null; 
+//         dock.bike = bike._id;
+//         dock.status = 'occupied';
+//         user.rentedBike = null;
+//         user.totalRideTime += duration; // Update total ride time
+//         user.rideCount++;
+
+//         console.log(user.name, "has returned the bike to dock: ", dock.name);
+
+//         await bike.save();
+//         await dock.save();
+//         await user.save();
+//         await transaction.save();
+//         await user.wallet.save();
+
+//         res.send(transaction);
+//     } catch (error) {
+//         res.status(500).send('Transaction error');
+//     }
+// };
+
+
+// Ride History
 const rideHistory = async (req, res) => {
     const userId = req.user._id
     try{
