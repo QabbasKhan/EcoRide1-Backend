@@ -107,7 +107,7 @@ userSchema.statics.signup = async function(name, email, password) {
     const salt = await bcrypt.genSalt(10)
     const hash = await bcrypt.hash(password, salt)
 
-    //const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
     
     const wallet = new Wallet();
     await wallet.save();
@@ -119,7 +119,7 @@ userSchema.statics.signup = async function(name, email, password) {
       {name: '50LoyaltyPoints', unlockCondition: 'Collect 50 loyal points', benefits: 'Free ride', isUnlocked: false, inUse: false}
   ];
   
-    const user = await this.create({ name, email, password: hash, wallet: wallet._id, rewards: defaultRewards })
+    const user = await this.create({ name, email, password: hash, wallet: wallet._id, verificationCode, rewards: defaultRewards })
 
     return user
   }
