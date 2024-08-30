@@ -7,7 +7,7 @@ const transactionSchema = new mongoose.Schema({
     dockStationEnd: { type: mongoose.Schema.Types.ObjectId, ref: 'Dock' },
     startTime: { type: Date, required: true },
     endTime: { type: Date },
-    fare: { type: Number, default: 0 }
+    fare: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
