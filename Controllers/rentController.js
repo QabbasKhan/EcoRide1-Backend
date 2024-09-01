@@ -26,7 +26,7 @@ const getAllStations = async (req, res) => {
 }
 
 const getProfile = async (req, res) => {
-    const userId = req.params.id; // Assuming you are passing the user ID as a parameter in the URL
+    const userId = req.user._id; // Assuming you are passing the user ID as a parameter in the URL
 
     try {
         const user = await User.findById(userId)
@@ -57,6 +57,56 @@ const getProfile = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
+// Controller to handle sharing loyalty points between users
+const shareLoyaltyPoints = async (req, res) => {
+    const senderId = req.user._id;
+    const { receiverEmail, pointsToShare } = req.body;
+
+    try {
+    // Validate input
+     if (!senderId || !receiverEmail || !pointsToShare) {
+      return res.status(400).json({ error: 'Sender ID, receiver email, and points to share are required.' });
+        }
+
+    if (pointsToShare <= 0) {
+      return res.status(400).json({ error: 'Points to share must be a positive number.' });
+    }
+
+    // Find the sender by ID
+    const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ error: 'Sender not found.' });
+    }
+
+    // Check if sender has enough loyalty points
+    if (sender.loyaltyPoints < pointsToShare) {
+      return res.status(400).json({ error: 'Insufficient loyalty points.' });
+    }
+
+    // Find the receiver by email
+    const receiver = await User.findOne({ email: receiverEmail });
+    if (!receiver) {
+      return res.status(404).json({ error: 'Receiver not found.' });
+    }
+
+    // Deduct points from sender and add them to the receiver
+    sender.loyaltyPoints -= pointsToShare;
+    receiver.loyaltyPoints += pointsToShare;
+
+    // Save changes to both users
+    await sender.save();
+    await receiver.save();
+
+    // Send success response
+    res.status(200).json({ message: 'Loyalty points shared successfully.', senderPoints: sender.loyaltyPoints, receiverPoints: receiver.loyaltyPoints });
+
+  } catch (error) {
+    // Handle errors and send failure response
+    res.status(400).json({ error: error.message });
+  }
+};
+
 
 //get availability
 const stationAvailability = async (req, res) => {
@@ -97,7 +147,7 @@ const scannedDockDetails = async (req, res) => {
 
         // Check wallet balance
         if (user.wallet.balance < 50) {
-            return res.status(400).send({ message: 'Insufficient balance. You need at least 50 to start a ride.' });
+            return res.status(400).send({ message: 'You need at least 50 PKR in your wallet to start a ride.' });
         }
 
         if(!user){
@@ -711,6 +761,26 @@ const isPeakHour = () => {
     return (currentHour >= 7 && currentHour <= 9) || (currentHour >= 17 && currentHour <= 19);
 };
 
+// Logout Controller Function
+const logout = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1]; // Extract token from authorization header
+
+        if (!token) {
+            return res.status(401).json({ message: 'Authorization token is missing.' });
+        }
+
+        // Optionally, blacklist the token to invalidate it
+        const blacklistedToken = new TokenBlacklist({ token });
+        await blacklistedToken.save();
+
+        // Send response indicating successful logout
+        res.status(200).json({ message: 'Logged out successfully.' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ message: 'Server error during logout.' });
+    }
+};
 
 
-module.exports = {stationAvailability, startRide, endRide, getAllStations,scannedDockDetails,rideHistory,claimReward, checkRewards, getProfile}
+module.exports = {stationAvailability, startRide, endRide, getAllStations,scannedDockDetails,rideHistory,claimReward, checkRewards, getProfile, shareLoyaltyPoints}
