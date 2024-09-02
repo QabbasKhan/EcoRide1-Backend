@@ -73,8 +73,9 @@ const userBalance = async (req, res) => {
   
       // Access the wallet balance
       const walletBalance = user.wallet ? user.wallet.balance : 0;
+      const userName = user.name;
   
-      res.status(200).json({ balance: walletBalance });
+      res.status(200).json({ name: userName , balance: walletBalance });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
