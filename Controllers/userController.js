@@ -60,6 +60,16 @@ const verifyUser = async (req, res) => {
         await user.save();
 
         const token = createToken(user._id);
+
+        // Send "Successfully Registered" email
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Registration Successful",
+        text: `Congratulations, ${user.name}! Your registration is complete.`,
+        html: `<p>Congratulations, <b>${user.name}</b>! Your registration is complete.</p>`,
+      });
+        
         // res.status(200).json({  });
         console.log(email, token)
         res.status(200).json({email, token, message: "Email verified successfully!" });

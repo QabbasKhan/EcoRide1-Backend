@@ -26,7 +26,7 @@ const getAllStations = async (req, res) => {
 }
 
 const getProfile = async (req, res) => {
-    const userId = req.user._id; // Assuming you are passing the user ID as a parameter in the URL
+    const userId = req.user._id; 
 
     try {
         const user = await User.findById(userId)
@@ -57,6 +57,28 @@ const getProfile = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
+
+// Function to get user wallet balance
+const userBalance = async (req, res) => {
+    try {
+      const userId = req.user.id; // Assuming the user ID is passed in the request parameters
+  
+      // Find the user by ID
+      const user = await User.findById(userId).populate('wallet');
+  
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      // Access the wallet balance
+      const walletBalance = user.wallet ? user.wallet.balance : 0;
+  
+      res.status(200).json({ balance: walletBalance });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
 
 // Controller to handle sharing loyalty points between users
 const shareLoyaltyPoints = async (req, res) => {
@@ -161,19 +183,20 @@ const scannedDockDetails = async (req, res) => {
         }
                 // Check if the user has already rented a bike
         if (user.rentedBike && dock.status === 'occupied') {
-            return res.status(400).send('You have already rented a bike. Please return it to an empty dock first.');
+            return res.status(400).send('You have already rented a bike. Try empty dock');
         }
 
         // Check if the user hasn't rented a bike and scans an empty dock
         if (!user.rentedBike && dock.status === 'empty') {
-            return res.status(400).send('You have not rented a bike. Please scan an occupied dock to start a ride.');
+            return res.status(400).send('Please scan an occupied dock to start a ride.');
         }
 
         const dockDetails = {
             dockId: dock._id,
             status: dock.status,
             stationName: dock.station.name,
-            bikeId: dock.bike ? dock.bike._id : null,
+            // bikeId: dock.bike ? dock.bike._id : null,
+            bikeId: dock.bike ? dock.bike.name : null,
         };
 
         res.json(dockDetails);
@@ -415,8 +438,8 @@ const rideHistory = async (req, res) => {
             }
 
             const rideHistory = transactions.map(transaction => ({
-                startPoint: transaction.dockStationStart ? transaction.dockStationStart.station.name : 'Unknown',
-                endPoint: transaction.dockStationEnd ? transaction.dockStationEnd.station.name : 'Unknown',
+                startPoint: transaction.dockStationStart ? transaction.dockStationStart.station.area : 'Unknown',
+                endPoint: transaction.dockStationEnd ? transaction.dockStationEnd.station.area : 'Unknown',
                 fare: transaction.fare,
                 date: transaction.startTime,
                 bikeId: transaction.bike._id
@@ -724,7 +747,7 @@ const checkRewards = async (req, res) => {
 const calculateTimeBasedFare = (duration) => {
     let fare = 0;
 
-    if (duration <= 10) {
+    if (duration <= 2) {
         fare = 0; // Free if duration is 10 minutes or less
     } else if (duration <= 20) {
         fare = duration * 2; // Charge for entire duration if more than 10 minutes
@@ -744,7 +767,7 @@ const calculateDemandBasedFare = (duration) => {
 
     let fare = 0;
 
-    if (duration <= 10) {
+    if (duration <= 2) {
         fare = 0; // Free if duration is 10 minutes or less
     } else {
         fare = duration * baseRate * peakHourMultiplier; // Charge for entire duration if more than 10 minutes
@@ -761,26 +784,26 @@ const isPeakHour = () => {
     return (currentHour >= 7 && currentHour <= 9) || (currentHour >= 17 && currentHour <= 19);
 };
 
-// Logout Controller Function
-const logout = async (req, res) => {
-    try {
-        const token = req.headers.authorization?.split(' ')[1]; // Extract token from authorization header
+// // Logout Controller Function
+// const logout = async (req, res) => {
+//     try {
+//         const token = req.headers.authorization?.split(' ')[1]; // Extract token from authorization header
 
-        if (!token) {
-            return res.status(401).json({ message: 'Authorization token is missing.' });
-        }
+//         if (!token) {
+//             return res.status(401).json({ message: 'Authorization token is missing.' });
+//         }
 
-        // Optionally, blacklist the token to invalidate it
-        const blacklistedToken = new TokenBlacklist({ token });
-        await blacklistedToken.save();
+//         // Optionally, blacklist the token to invalidate it
+//         const blacklistedToken = new TokenBlacklist({ token });
+//         await blacklistedToken.save();
 
-        // Send response indicating successful logout
-        res.status(200).json({ message: 'Logged out successfully.' });
-    } catch (error) {
-        console.error('Logout error:', error);
-        res.status(500).json({ message: 'Server error during logout.' });
-    }
-};
+//         // Send response indicating successful logout
+//         res.status(200).json({ message: 'Logged out successfully.' });
+//     } catch (error) {
+//         console.error('Logout error:', error);
+//         res.status(500).json({ message: 'Server error during logout.' });
+//     }
+// };
 
 
-module.exports = {stationAvailability, startRide, endRide, getAllStations,scannedDockDetails,rideHistory,claimReward, checkRewards, getProfile, shareLoyaltyPoints}
+module.exports = {stationAvailability, startRide, endRide, getAllStations,scannedDockDetails,rideHistory,claimReward, checkRewards, getProfile, shareLoyaltyPoints, userBalance}

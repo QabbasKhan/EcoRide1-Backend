@@ -45,7 +45,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     // listen for requests
     console.log('connected to db')
-    // seedDatabase();
+    //seedDatabase();
   })
   .catch((error) => {
     console.log(error)
@@ -192,7 +192,7 @@ mongoose.connect(process.env.MONGO_URI)
 //     await Wallet.deleteMany({});
 //     await Transaction.deleteMany({});
 
-//     // Create Stations with latitude and longitude
+//     // Create two Stations with latitude and longitude
 //     const station1 = new Station({
 //       name: 'Station1',
 //       area: 'BLOCKA',
@@ -214,48 +214,46 @@ mongoose.connect(process.env.MONGO_URI)
 //     await station1.save();
 //     await station2.save();
 
-//     // Create Docks with specific QR codes
-//     const docks = [
-//       { name: 'dock 1', station: station1._id, status: 'occupied', qrCode: 'DOCK-QR-CODE-1' },
-//       { name: 'dock 2', station: station1._id, status: 'occupied', qrCode: 'DOCK-QR-CODE-2'}, 
-//       { name: 'dock 3', station: station1._id, status: 'empty', qrCode: 'DOCK-QR-CODE-3' },
-//       { name: 'dock 4', station: station2._id, status: 'empty', qrCode: 'DOCK-QR-CODE-4' },
-//       { name: 'dock 5', station: station2._id, status: 'empty', qrCode: 'DOCK-QR-CODE-5' },
-//       { name: 'dock 6', station: station2._id, status: 'occupied', qrCode: 'DOCK-QR-CODE-6' }
-//     ];
+//     // Create two Docks with specific QR codes, one for each station
+//     const dock1 = new Dock({
+//       name: 'dock 1',
+//       station: station1._id,
+//       status: 'occupied',
+//       qrCode: 'DOCK-QR-CODE-1'
+//     });
 
-//     for (const dock of docks) {
-//       const newDock = new Dock(dock);
-//       await newDock.save();
-//     }
+//     const dock2 = new Dock({
+//       name: 'dock 2',
+//       station: station2._id,
+//       status: 'empty',
+//       qrCode: 'DOCK-QR-CODE-2'
+//     });
+
+//     await dock1.save();
+//     await dock2.save();
 
 //     // Update Stations with Dock references
-//     station1.docks = await Dock.find({ station: station1._id }).select('_id');
-//     station2.docks = await Dock.find({ station: station2._id }).select('_id');
+//     station1.docks = [dock1._id];
+//     station2.docks = [dock2._id];
 
 //     await station1.save();
 //     await station2.save();
 
-//     // Create Bikes
-//     const bikes = [
-//       { name: 'bike 1', status: 'available', currentDock: (await Dock.findOne({ station: station1._id, name: 'dock 1' }))._id, rfidTag: '21153240253' },
-//       { name: 'bike 2', status: 'available', currentDock: (await Dock.findOne({ station: station1._id, name: 'dock 2' }))._id, rfidTag: '1911042947' },
-//       { name: 'bike 3', status: 'available', currentDock: (await Dock.findOne({ station: station2._id, name: 'dock 6' }))._id, rfidTag: '21153240252' }
-//     ];
+//     // Create a single Bike and assign it to Dock 1
+//     const bike1 = new Bike({
+//       name: 'B-001',
+//       status: 'available',
+//       currentDock: dock1._id,
+//       rfidTag: '21153240253'
+//     });
 
-//     for (const bike of bikes) {
-//       const newBike = new Bike(bike);
-//       await newBike.save();
-//     }
+//     await bike1.save();
 
-//     // Update Docks with Bike references
-//     const updatedDocks = await Dock.find({ 'name': { $in: ['dock 1', 'dock 2', 'dock 6'] } });
-//     for (let i = 0; i < updatedDocks.length; i++) {
-//       updatedDocks[i].bike = (await Bike.findOne({ name: `bike ${i + 1}` }))._id;
-//       await updatedDocks[i].save();
-//     }
+//     // Update Dock 1 with Bike reference
+//     dock1.bike = bike1._id;
+//     await dock1.save();
 
-//     // Create Wallets
+//     // Create Wallets for Users
 //     const wallet1 = new Wallet({ balance: 100.0 });
 //     const wallet2 = new Wallet({ balance: 200.0 });
 
@@ -276,7 +274,7 @@ mongoose.connect(process.env.MONGO_URI)
 //     await wallet1.save();
 //     await wallet2.save();
 
-//     console.log('Database seeded!');
+//     console.log('Database seeded successfully!');
 //   } catch (err) {
 //     console.error(err);
 //   }

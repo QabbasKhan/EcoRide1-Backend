@@ -118,7 +118,7 @@ userSchema.statics.signup = async function(name, email, password) {
     const defaultRewards = [
       { name: '100MinutesRide', unlockCondition: 'Make your total ride time 100 min', benefits: 'Free ride', isUnlocked: false, inUse: false },
       { name: '5ConsecutiveDays', unlockCondition: 'Ride for five consecutive days', benefits: 'Free ride', isUnlocked: false, inUse: false },
-      {name: '10Rides', unlockCondition: 'rideCount>=5', benefits: '50% discount on a ride', isUnlocked: false, inUse: false},
+      {name: '10Rides', unlockCondition: 'Make 10 rides', benefits: '50% discount on a ride', isUnlocked: false, inUse: false},
       {name: '50LoyaltyPoints', unlockCondition: 'Collect 50 loyal points', benefits: 'Free ride', isUnlocked: false, inUse: false}
   ];
   
