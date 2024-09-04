@@ -75,7 +75,7 @@ const userBalance = async (req, res) => {
       const walletBalance = user.wallet ? user.wallet.balance : 0;
       const userName = user.name;
   
-      res.status(200).json({ name: userName , balance: walletBalance });
+      res.status(200).json({ name: userName, balance: walletBalance });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -212,12 +212,12 @@ const startRide = async (req, res) => {
     //changed
     const userId = req.user._id
     const {dockId} = req.body;
+    console.log('Received dockId:', dockId);
     //orignal
    // const { userId, qrCode } = req.body;
-
    try{
     const user = await User.findById(userId).populate('wallet');
-    //console.log('User:', user.name);
+    console.log('User:', user.name);
     // const dock = await Dock.findOne({ qrCode, status: 'occupied' }).populate('bike');
     const dock = await Dock.findById(dockId).populate('bike');
     //console.log('Dock:', dock);
@@ -234,8 +234,12 @@ const startRide = async (req, res) => {
     dock.bike = null;
     user.rentedBike = bike._id;
 
+    // const getDockId = dockId.toString(); // Get the real dockId
+    
+    const topic = `qabbas/${dockId}/control`
     // Send MQTT unlock command
-    mqttClient.publish('qabbas/dockId/control', 'UNLOCK', (error) => {
+    mqttClient.publish(topic, 'UNLOCK', (error) => {
+        console.log("inside mQTT",dock);
         if (error) {
             console.error('Failed to send unlock command', error);
             return res.status(500).send('Failed to send unlock command');
@@ -298,7 +302,8 @@ const endRide = async (req, res) => {
 
     //     await processTransaction(user, bike, dock, res);
 
-        const responseTopic = 'qabbas/dockId/response';
+        const responseTopic = `qabbas/${dockId}/response`;
+        const controlTopic = `qabbas/${dockId}/control`;
 
         // Subscribe to the response topic
         mqttClient.subscribe(responseTopic, async (err) => {
@@ -309,7 +314,7 @@ const endRide = async (req, res) => {
         
         
         // Send MQTT unlock command
-        mqttClient.publish('qabbas/dockId/control', 'UNLOCK', (error) => {
+        mqttClient.publish(controlTopic, 'UNLOCK', (error) => {
             if (error) {
                 console.error('Failed to send unlock command', error);
                 return res.status(500).send('Failed to send unlock command');
